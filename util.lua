@@ -39,7 +39,7 @@ end
 
 function util.teq(this, that) -- table equality
   if type(this) == 'table' and type(that) == 'table' then
-    if #this ~= #that then print'fimoz' return false end
+    if #this ~= #that then return false end
     for k,v in pairs(this) do
       if not util.teq(that[k], v) then return false end
     end

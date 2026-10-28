@@ -312,9 +312,7 @@ function pl.terminal(pattern, genesis)
   pattern = pl.surround[pattern]
   local out = {function(state, text)
     local first, bound, value = string.find(text, pattern, state.pos)
-    --pl.dprint('term', first, bound, value, state.pos)
     if first ~= state.pos or not value then return end
-    --pl.dprint('term', bound, value)
     return 'finish', value, bound+1
   end, function(state, opts)
     local result = {string.format(genesis, state.value)}
