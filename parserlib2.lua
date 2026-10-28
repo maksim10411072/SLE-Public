@@ -134,7 +134,7 @@ function pl.try(ptable, name, text, pos)
           pl.dprint('usual', pl.sym2str(dad), 'to', pl.sym2str(out), #newlist+1)
           finishes = finishes+1
           newlist[#newlist+1] = out
-        elseif state.pos > #text then
+        elseif state.pos > #text then -- remove condition here to allow for incomplete parsing
           -- daddy issues
           pl.dprint('success #'..tostring(#results+1))
           results[#results+1] = {data = action[3], pos = action[4]}
