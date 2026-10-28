@@ -68,7 +68,6 @@ function pl.try(ptable, name, text, pos)
       local action = {pcall(ff, state, text)}
       if not action[1] then
         pl.dprint('outright error', action[2])
-        -- пустота тут оставленно намеренно чтобы нельзя было делать штуки типа error('branch')
         errors = errors+1
       elseif action[2] == 'branch' and action[3] then
         pl.dprint('branch', action[3], 'to', state.pos, 'argc', state.data[3]+1)
