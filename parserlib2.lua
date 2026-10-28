@@ -106,7 +106,7 @@ function pl.try(ptable, name, text, pos)
           end
         end
       elseif action[2] == 'finish' then
-        pl.dprint('finish', ptable.tostr(action[3]), action[4])
+        pl.dprint('finish', action[3], action[4])
         pl.dprint("trying to restore from", pl.sym2str(state))
         pl.dprint("vars: "..tostring(state.name)..", "..tostring(state.variant)..", "..tostring(state.startpos))
         local wl = pl.ensure(waitlist, state.name, state.variant, state.startpos)
