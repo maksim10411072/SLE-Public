@@ -5,7 +5,7 @@ local g = require 'examples.mathexp.grammar'(pl)
 
 print(
 [[Welcome to Mathexp REPL.
-> quit/> exit to leave.
+> quit/exit to leave.
 > debug to switch debug logging.
 > wtf for quick reference of Mathexp.]])
 while true do
@@ -22,7 +22,7 @@ operator precedence:
 2. * and /
 3. () and function call
 Functions from lua standard library 'math' is included. Function call does not support multiple arguments (this is a challenge for you to implement this).
-Since function call has highest priority, it will steal numbers from unparenthized expressions:
+Since function call has highest priority, it will steal numbers from unparenthised expressions:
  - sin 67 + 67 = (sin 67) + 67
  - sin (67 + 67) = sin (67+67)
  - log (1337+228) = log (1337 + 228)
