@@ -1,6 +1,7 @@
 # Le Parserlib2
 Parserlib2 (may be renamed in future) is a simple GLL parser (and unparser) with nonstandard view of parsing: every rule is a function that takes state and returns command to parser.  
 **Note that quality of my code can be very questionable sometimes. Almost no AI was used in this project, all slop is natural.**
+[![Vibe-Scale 0: No AI](https://img.shields.io/badge/Vibe--Scale%200-No%20AI-9467bd)](https://github.com/vibesdk/vibe-scale/blob/main/scale/vibe-0.md)
 
 ## Examples
 In ./examples/ directory you can find examples of using parserlib2.
