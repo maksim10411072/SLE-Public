@@ -25,7 +25,7 @@ function pl.ensure(t, ...)
 end
 
 function pl.try(ptable, name, text, pos)
-  local errors, branches, finishes, iterations, disfinishes = 0,0,0,0,0
+  local errors, branches, returns, iterations, nonreturns, prevented = 0,0,0,0,0,0
   local waits, resurrects = 0,0
   local gid = 0 local function ggid() gid = gid+1 return gid end
   local waitlist = {}
@@ -43,6 +43,9 @@ function pl.try(ptable, name, text, pos)
       cache = dad.cache,
       id = dad.id, --ggid(),
     }
+  end
+  if not ptable[name] then
+    error 'invalid root symbol.'
   end
   for i,v in ipairs(ptable[name]) do
     worklist[i] = {
@@ -71,6 +74,7 @@ function pl.try(ptable, name, text, pos)
         errors = errors+1
       elseif action[2] == 'branch' and action[3] then
         pl.dprint('branch', action[3], 'to', state.pos, 'argc', state.data[3]+1)
+        if not ptable[action[3]] then error('invalid symbol '..tostring(action[3])) end
         for i,v in ipairs(ptable[action[3]]) do
           local newstate = {
             name = action[3],
@@ -102,10 +106,12 @@ function pl.try(ptable, name, text, pos)
               pl.dprint('branchoff', pl.sym2str(newstate), #newlist+1)
               newlist[#newlist+1] = newstate
             end
+          else
+            prevented = prevented+1
           end
         end
-      elseif action[2] == 'finish' then
-        pl.dprint('finish', action[3], action[4])
+      elseif action[2] == 'return' then
+        pl.dprint('return', action[3], action[4])
         pl.dprint("trying to restore from", pl.sym2str(state))
         pl.dprint("vars: "..tostring(state.name)..", "..tostring(state.variant)..", "..tostring(state.startpos))
         local wl = pl.ensure(waitlist, state.name, state.variant, state.startpos)
@@ -131,7 +137,7 @@ function pl.try(ptable, name, text, pos)
         if dad then
           local out = hidad(dad, action[3], action[4])
           pl.dprint('usual', pl.sym2str(dad), 'to', pl.sym2str(out), #newlist+1)
-          finishes = finishes+1
+          returns = returns+1
           newlist[#newlist+1] = out
         elseif state.pos > #text then -- remove condition here to allow for incomplete parsing
           -- daddy issues
@@ -140,7 +146,7 @@ function pl.try(ptable, name, text, pos)
         end
       else
         pl.dprint('bullshit', action[2])
-        disfinishes = disfinishes+1
+        nonreturns = nonreturns+1
         local fl = pl.ensure(faillist, state.name, state.variant)
         fl[state.startpos] = true
       end
@@ -150,11 +156,14 @@ function pl.try(ptable, name, text, pos)
   end
   pl.dprint'-------------------'
   pl.dprint('#results:', #results)
-  return results, {iterations, errors, branches, finishes, disfinishes, waits, resurrects}
+  return results, 
+    {iterations = iterations, errors = errors, branches = branches,
+    returns = returns, nontreturns = nonreturns, waits = waits,
+    resurrects = resurrects}
 end
 
 function pl.stry(ptable, name, cdata, opts)
-  local errors, branches, finishes, iterations, disfinishes = 0,0,0,0,0
+  local errors, branches, returns, iterations, nonreturns = 0,0,0,0,0
   local waits, resurrects = 0,0
   local gid = 0 local function ggid() gid = gid+1 return gid end
   local waitlist = {}
@@ -170,7 +179,6 @@ function pl.stry(ptable, name, cdata, opts)
       value = dad.value,
       cache = dad.cache,
       id = dad.id,
-      number = dad.number
     }
   end
   for i,v in ipairs(ptable[name]) do
@@ -182,7 +190,6 @@ function pl.stry(ptable, name, cdata, opts)
       data = {nil,nil,0},
       value = cdata,
       id = ggid(),
-      number = 0
     }
   end
   local results = {}
@@ -215,15 +222,15 @@ function pl.stry(ptable, name, cdata, opts)
           pl.dprint('branchoff', pl.sym2str(newstate), #newlist+1)
           newlist[#newlist+1] = newstate
         end
-      elseif action[2] == 'finish' then
-        pl.dprint('finish')
+      elseif action[2] == 'return' then
+        pl.dprint('return')
         pl.dprint("trying to restore from", pl.sym2str(state))
         pl.dprint("vars: "..tostring(state.name)..", "..tostring(state.variant)..", "..tostring(state.startpos))
         local dad = state.parent
         if dad then
           local out = hidad(dad, action[3], state.pos)
           pl.dprint('usual', pl.sym2str(dad), 'to', pl.sym2str(out), #newlist+1)
-          finishes = finishes+1
+          returns = returns+1
           newlist[#newlist+1] = out
         else
           -- daddy issues (unparsing edition)
@@ -232,7 +239,7 @@ function pl.stry(ptable, name, cdata, opts)
         end
       else
         pl.dprint('bullshit', action[2])
-        disfinishes = disfinishes+1
+        nonreturns = nonreturns+1
       end
     end
     pl.dprint("newlist size", #newlist)
@@ -240,7 +247,7 @@ function pl.stry(ptable, name, cdata, opts)
   end
   pl.dprint'-------------------'
   pl.dprint('#results:', #results)
-  return results, {iterations, errors, branches, finishes, disfinishes, waits, resurrects}
+  return results, {iterations, errors, branches, returns, nonreturns, waits, resurrects}
 end
 
 function pl.appendlines(body, bindent, lines)
@@ -275,7 +282,7 @@ function pl.nonterminal(rightside, ending, genesis, decorator)
         syms[storage[3]] = storage[2]
         storage = storage[1]
       end
-      return 'finish', ending(syms), state.pos
+      return 'return', ending(syms), state.pos
     end
   end, function(state, opts)
     state.cache = state.cache or genesis(state.value, opts)
@@ -294,7 +301,7 @@ function pl.nonterminal(rightside, ending, genesis, decorator)
         local body = {''}
         for _,v in ipairs(linebuf) do dindent = pl.appendlines(body, dindent, v) end
         body[0] = dindent
-        return 'finish', body
+        return 'return', body
       end
     end
   end}
@@ -313,11 +320,11 @@ function pl.terminal(pattern, genesis)
   local out = {function(state, text)
     local first, bound, value = string.find(text, pattern, state.pos)
     if first ~= state.pos or not value then return end
-    return 'finish', value, bound+1
+    return 'return', value, bound+1
   end, function(state, opts)
     local result = {string.format(genesis, state.value)}
     result[0] = ''
-    return 'finish', result
+    return 'return', result
   end}
   return out
 end
