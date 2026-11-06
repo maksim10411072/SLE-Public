@@ -24,7 +24,13 @@ function pl.ensure(t, ...)
   return s
 end
 
-function pl.try(ptable, name, text, pos)
+function pl.driver(unparse, ptable, name, first, second)
+  local text, pos, data, opts
+  if unparse then
+    data, opts = first, second
+  else
+    text, pos = first, second
+  end
   local errors, branches, returns, iterations, nonreturns, prevented = 0,0,0,0,0,0
   local waits, resurrects = 0,0
   local gid = 0 local function ggid() gid = gid+1 return gid end
@@ -32,17 +38,22 @@ function pl.try(ptable, name, text, pos)
   local faillist = {}
   local worklist = {}
   local function hidad(dad, value, pos)
-    return {
+    local n = {
       name = dad.name,
       variant = dad.variant,
       parent = dad.parent,
       driver = dad.driver,
       data = {dad.data, value, dad.data[3]+1},
-      pos = pos,
-      startpos = dad.startpos,
       cache = dad.cache,
       id = dad.id, --ggid(),
     }
+    if unparse then
+      n.value = dad.value
+    else
+      n.startpos = dad.startpos
+      n.pos = pos
+    end
+    return n
   end
   if not ptable[name] then
     error 'invalid root symbol.'
@@ -54,10 +65,16 @@ function pl.try(ptable, name, text, pos)
       parent = nil,
       driver = v[1],
       data = {nil,nil,0},
-      pos = pos or 1,
-      startpos = pos or 1,
       id = ggid(),
     }
+    if unparse then
+      worklist[i].driver = v[2]
+      worklist[i].value = data
+    else
+      worklist[i].driver = v[1]
+      worklist[i].startpos = pos or 1
+      worklist[i].pos = pos or 1
+    end
   end
   local results = {}
   while #worklist>0 do
@@ -68,7 +85,9 @@ function pl.try(ptable, name, text, pos)
     for _,state in ipairs(worklist) do
       pl.dprint('processing state', _, pl.sym2str(state))
       local ff = state.driver
-      local action = {pcall(ff, state, text)}
+      local arg
+      if unparse then arg = opts else arg = text end
+      local action = {pcall(ff, state, arg)}
       if not action[1] then
         pl.dprint('outright error', action[2])
         errors = errors+1
@@ -80,20 +99,29 @@ function pl.try(ptable, name, text, pos)
             name = action[3],
             variant = i,
             parent = state,
-            driver = v[1],
             data = {nil,nil,0},
-            pos = state.pos,
-            startpos = state.pos,
             id = ggid(),
           }
-          local fl = pl.ensure(faillist, newstate.name, newstate.variant)
-          if not fl[newstate.startpos] then
+          local should = true
+          if unparse then
+            newstate.driver = v[2]
+            newstate.value = action[4]
+          else
+            newstate.driver = v[1]
+            newstate.startpos = state.pos
+            newstate.pos = state.pos
+            local fl = pl.ensure(faillist, newstate.name, newstate.variant)
+            should = not fl[newstate.startpos]
+          end
+          if should then
             local flag, prefix = false, state
-            while not flag and prefix do
-              if newstate.name == prefix.name and newstate.variant == prefix.variant and newstate.startpos == prefix.startpos then
-                flag = true
-              else
-                prefix = prefix.parent
+            if not unparse then
+              while not flag and prefix do
+                if newstate.name == prefix.name and newstate.variant == prefix.variant and newstate.startpos == prefix.startpos then
+                  flag = true
+                else
+                  prefix = prefix.parent
+                end
               end
             end
             if flag then
@@ -112,34 +140,28 @@ function pl.try(ptable, name, text, pos)
         end
       elseif action[2] == 'return' then
         pl.dprint('return', action[3], action[4])
-        pl.dprint("trying to restore from", pl.sym2str(state))
-        pl.dprint("vars: "..tostring(state.name)..", "..tostring(state.variant)..", "..tostring(state.startpos))
-        local wl = pl.ensure(waitlist, state.name, state.variant, state.startpos)
-        for i,v in ipairs(wl) do
-          local flag = true
-          local tp = state.parent
-          local op = v.parent
-          while tp and op and flag do
-            flag = tp == op
-            tp = tp.parent
-            op = op.parent
+        if not unparse then
+          pl.dprint("trying to restore from", pl.sym2str(state))
+          pl.dprint("vars: "..tostring(state.name)..", "..tostring(state.variant)..", "..tostring(state.sp_val))
+          local wl = pl.ensure(waitlist, state.name, state.variant, state.startpos)
+          for i,v in ipairs(wl) do
+            if state.parent == v.parent then
+              resurrects = resurrects+1
+              pl.dprint('restoring', pl.sym2str(v))
+              local nv = hidad(v, action[3], action[4])
+              pl.dprint('restored', pl.sym2str(nv), #newlist+1)
+              newlist[#newlist+1] = nv
+            end
           end
-          if flag then
-            resurrects = resurrects+1
-            pl.dprint('restoring', pl.sym2str(v))
-            local nv = hidad(v, action[3], action[4])
-            pl.dprint('restored', pl.sym2str(nv), #newlist+1)
-            newlist[#newlist+1] = nv
-          end
+          pl.dprint('end restoration')
         end
-        pl.dprint('end restoration')
         local dad = state.parent
         if dad then
           local out = hidad(dad, action[3], action[4])
           pl.dprint('usual', pl.sym2str(dad), 'to', pl.sym2str(out), #newlist+1)
           returns = returns+1
           newlist[#newlist+1] = out
-        elseif state.pos > #text then -- remove condition here to allow for incomplete parsing
+        elseif unparse or state.pos > #text then -- remove condition here to allow for incomplete parsing
           -- daddy issues
           pl.dprint('success #'..tostring(#results+1))
           results[#results+1] = {data = action[3], pos = action[4]}
@@ -147,8 +169,10 @@ function pl.try(ptable, name, text, pos)
       else
         pl.dprint('bullshit', action[2])
         nonreturns = nonreturns+1
-        local fl = pl.ensure(faillist, state.name, state.variant)
-        fl[state.startpos] = true
+        if not unparse then
+          local fl = pl.ensure(faillist, state.name, state.variant)
+          fl[state.startpos] = true
+        end
       end
     end
     pl.dprint("newlist size", #newlist)
@@ -162,7 +186,15 @@ function pl.try(ptable, name, text, pos)
     resurrects = resurrects}
 end
 
-function pl.stry(ptable, name, cdata, opts)
+function pl.try(ptable, name, text, pos)
+  return pl.driver(false, ptable, name, text, pos)
+end
+
+function pl.stry(ptable, name, data, opts)
+  return pl.driver(true, ptable, name, data, opts)
+end
+
+function pl._stry(ptable, name, cdata, opts)
   local errors, branches, returns, iterations, nonreturns = 0,0,0,0,0
   local waits, resurrects = 0,0
   local gid = 0 local function ggid() gid = gid+1 return gid end
