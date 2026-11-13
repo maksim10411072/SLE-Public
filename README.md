@@ -4,9 +4,10 @@ Parserlib2 (may be renamed in future) is a simple GLL parser (and unparser) with
 [![Vibe-Scale 0: No AI](https://img.shields.io/badge/Vibe--Scale%200-No%20AI-9467bd)](https://github.com/vibesdk/vibe-scale/blob/main/scale/vibe-0.md)
 
 ## Examples
-In ./examples/ directory you can find examples of using parserlib2.
-- mathexp: Simple subset of mathematical language. REPL included.
-- json: JSON grammar for parserlib2.
+In `./examples/` directory you can find runnable examples of using parserlib2. Usually they use grammars from `./grammars/`.
+- mathexp_repl: REPL for simple subset of mathematical language.
+- parsejson: program that reads parses `.json` file in argument.
+- contextual_repl: REPL for grammar with kind of context-sensitive rules.
 
 ## API
 - `try(ptable, name, text, pos)` - Main parsing function. Tries to parse symbol `name` of grammar `ptable` in text `text` at position `pos`. Returns table with all possible parsing variants and table with statistics. Every variant is a table with resulting data under key `data` and end position under `pos`.

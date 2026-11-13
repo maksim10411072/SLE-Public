@@ -1,5 +1,5 @@
 local pl = require 'parserlib2'
-local grammar = require 'examples.contextual.grammar'(pl)
+local grammar = require 'grammars.contextual'(pl)
 local util = require 'util'
 
 print(

@@ -1,6 +1,6 @@
 local util = require 'util'
 local pl = require 'parserlib2'
-local g = require 'examples.json.grammar' (pl)
+local g = require 'grammars.json' (pl)
 
 local args = {...}
 local path = args[1]

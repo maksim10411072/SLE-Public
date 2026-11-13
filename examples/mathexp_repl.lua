@@ -1,7 +1,7 @@
 local util = require 'util'
 local pl = require 'parserlib2'
 pl.debug = false
-local g = require 'examples.mathexp.grammar'(pl)
+local g = require 'grammars.mathexp'(pl)
 
 print(
 [[Welcome to Mathexp REPL.
