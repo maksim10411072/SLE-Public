@@ -24,7 +24,8 @@ function pl.ensure(t, ...)
   return s
 end
 
-function pl.driver(unparse, ptable, name, first, second)
+function pl.driver(unparse, ptable, name, first, second, extras)
+  extras = extras or {}
   local text, pos, data, opts
   if unparse then
     data, opts = first, second
@@ -93,7 +94,7 @@ function pl.driver(unparse, ptable, name, first, second)
         errors = errors+1
       elseif action[2] == 'branch' and action[3] then
         pl.dprint('branch', action[3], 'to', state.pos, 'argc', state.data[3]+1)
-        if not ptable[action[3]] then error('invalid symbol '..tostring(action[3])) end
+        if not ptable[action[3]] then error('requested branch for invalid symbol'..tostring(action[3])) end
         for i,v in ipairs(ptable[action[3]]) do
           local newstate = {
             name = action[3],
@@ -161,10 +162,19 @@ function pl.driver(unparse, ptable, name, first, second)
           pl.dprint('usual', pl.sym2str(dad), 'to', pl.sym2str(out), #newlist+1)
           returns = returns+1
           newlist[#newlist+1] = out
-        elseif unparse or state.pos > #text then -- remove condition here to allow for incomplete parsing
+        elseif unparse 
+          or (extras.allow_incomplete or state.pos > #text) then
           -- daddy issues
           pl.dprint('success #'..tostring(#results+1))
-          results[#results+1] = {data = action[3], pos = action[4]}
+          local result = {data = action[3], pos = action[4]}
+          if extras.yield_results and coroutine.isyieldable() then
+            coroutine.yield(result)
+          else
+            results[#results+1] = result
+          end
+          if extras.single_output then
+            break
+          end
         end
       else
         pl.dprint('bullshit', action[2])
@@ -186,12 +196,12 @@ function pl.driver(unparse, ptable, name, first, second)
     resurrects = resurrects}
 end
 
-function pl.try(ptable, name, text, pos)
-  return pl.driver(false, ptable, name, text, pos)
+function pl.try(ptable, name, text, pos, extras)
+  return pl.driver(false, ptable, name, text, pos, extras)
 end
 
-function pl.stry(ptable, name, data, opts)
-  return pl.driver(true, ptable, name, data, opts)
+function pl.stry(ptable, name, data, opts, extras)
+  return pl.driver(true, ptable, name, data, opts, extras)
 end
 
 function pl.appendlines(body, bindent, lines)
