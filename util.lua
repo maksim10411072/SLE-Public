@@ -49,4 +49,44 @@ function util.teq(this, that) -- table equality
   end
 end
 
+function util.ftab(tab, ml, delim) -- format table
+  delim = delim or ' '
+  local columns = {}
+  local function standard(tx, l)
+    return tx..(' '):rep(l-#tx)
+  end
+  for k,v in pairs(tab) do
+    local ks, vs = tostring(k), tostring(v)
+    local l = math.max(#ks, #vs)
+    columns[#columns+1] = {
+      name = standard(ks, l),
+      value = standard(vs, l),
+      length = l
+    }
+  end
+  local rows, buffs, acc, rpos, pos = {}, {{},{}}, 0, 1, 1
+  while columns[pos] do
+    local v = columns[pos]
+    if #buffs[1] == 0 then
+      buffs[1][#buffs[1]+1] = v.name
+      buffs[2][#buffs[2]+1] = v.value
+      acc= acc + v.length
+      pos = pos+1
+    else
+      if acc + v.length > ml then
+        rows[rpos*2-1] = table.concat(buffs[1], delim)
+        rows[rpos*2] = table.concat(buffs[2], delim)
+        buffs = {{},{}}
+        rpos = rpos+1
+        acc = 0
+      else
+        buffs[1][#buffs[1]+1] = v.name
+        buffs[2][#buffs[2]+1] = v.value
+        acc= acc + v.length
+        pos = pos+1 
+      end
+    end
+  end
+end
+
 return util
