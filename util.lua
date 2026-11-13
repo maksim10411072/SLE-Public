@@ -50,6 +50,7 @@ function util.teq(this, that) -- table equality
 end
 
 function util.ftab(tab, ml, delim) -- format table
+  ml = ml or 30
   delim = delim or ' '
   local columns = {}
   local function standard(tx, l)
@@ -67,26 +68,23 @@ function util.ftab(tab, ml, delim) -- format table
   local rows, buffs, acc, rpos, pos = {}, {{},{}}, 0, 1, 1
   while columns[pos] do
     local v = columns[pos]
-    if #buffs[1] == 0 then
+    if acc + v.length > ml and #buffs[1] > 0 then
+      rows[rpos*2-1] = table.concat(buffs[1], delim)
+      rows[rpos*2] = table.concat(buffs[2], delim)
+      buffs = {{},{}}
+      rpos = rpos+1
+      acc = 0
+    else
       buffs[1][#buffs[1]+1] = v.name
       buffs[2][#buffs[2]+1] = v.value
       acc= acc + v.length
-      pos = pos+1
-    else
-      if acc + v.length > ml then
-        rows[rpos*2-1] = table.concat(buffs[1], delim)
-        rows[rpos*2] = table.concat(buffs[2], delim)
-        buffs = {{},{}}
-        rpos = rpos+1
-        acc = 0
-      else
-        buffs[1][#buffs[1]+1] = v.name
-        buffs[2][#buffs[2]+1] = v.value
-        acc= acc + v.length
-        pos = pos+1 
-      end
+      pos= pos + 1 
     end
   end
+  rows[rpos*2-1] = table.concat(buffs[1], delim)
+  rows[rpos*2] = table.concat(buffs[2], delim)
+  local s = table.concat(rows, '\n')
+  return s
 end
 
 return util

@@ -15,10 +15,7 @@ pl.debug = args[2] == 'debug'
 
 local razbor, stats = pl.try(g, 'value', text)
 print 'statistics:'
-print('iterations, errors, branchings')
-print(stats[1], stats[2], stats[3])
-print('finishes, disfinishes, waits, resurrects')
-print(stats[4], stats[5], stats[6], stats[7])
+print(util.ftab(stats))
 
 if #razbor > 1 then
   print "Unambigous grammar. Wtf? This should be a bug."

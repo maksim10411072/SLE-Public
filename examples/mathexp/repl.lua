@@ -34,10 +34,7 @@ Since function call has highest priority, it will steal numbers from unparenthes
   else
     local razbor, stats = pl.try(g, 'value0', ins)
     print 'statistics:'
-    print('iterations, errors, branchings')
-    print(stats[1], stats[2], stats[3])
-    print('finishes, disfinishes, waits, resurrects')
-    print(stats[4], stats[5], stats[6], stats[7])
+    print(util.ftab(stats))
     print('results:')
     local texts = {}
     for i,v in ipairs(razbor) do
