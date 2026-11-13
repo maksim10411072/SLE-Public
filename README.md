@@ -8,6 +8,7 @@ In `./examples/` directory you can find runnable examples of using parserlib2. U
 - mathexp_repl: REPL for simple subset of mathematical language.
 - parsejson: program that reads parses `.json` file in argument.
 - contextual_repl: REPL for grammar with kind of context-sensitive rules.
+You can use `make example/<example name>` to run an example.
 
 ## API
 - `try(ptable, name, text, pos)` - Main parsing function. Tries to parse symbol `name` of grammar `ptable` in text `text` at position `pos`. Returns table with all possible parsing variants and table with statistics. Every variant is a table with resulting data under key `data` and end position under `pos`.
