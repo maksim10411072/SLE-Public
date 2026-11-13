@@ -22,7 +22,7 @@ operator precedence:
 2. * and /
 3. () and function call
 Functions from lua standard library 'math' is included. Function call does not support multiple arguments (this is a challenge for you to implement this).
-Since function call has highest priority, it will steal numbers from unparenthised expressions:
+Since function call has highest priority, it will steal numbers from unparenthesized expressions:
  - sin 67 + 67 = (sin 67) + 67
  - sin (67 + 67) = sin (67+67)
  - log (1337+228) = log (1337 + 228)
